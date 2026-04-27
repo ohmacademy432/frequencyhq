@@ -3,16 +3,34 @@
   --cream: #F5EFE4;
   --gold: #B8895A;
   --stone: #888780;
+  --stone-dark: #4a4945;
   --paper: #FFFFFF;
   --whisper: rgba(10, 8, 6, 0.08);
 
   --serif: 'Cormorant Garamond', 'Times New Roman', Georgia, serif;
   --sans: 'Jost', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
+  --fs-eyebrow: 1.125rem;
+  --fs-meta: 1.125rem;
+  --fs-body: 1.125rem;
+  --fs-body-lg: 1.0625rem;
+  --fs-heading-sm: 1.25rem;
+  --fs-heading: 1.5rem;
+  --fs-display-sm: 2rem;
+  --fs-display: 2.5rem;
+  --fs-display-lg: 3rem;
+
   color-scheme: light;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --fs-eyebrow: 1.125rem;
+    --fs-display: 3rem;
+  }
 }
 
 *,
@@ -29,8 +47,11 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-weight: 300;
-  font-size: 16px;
+  font-size: var(--fs-body);
   line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {

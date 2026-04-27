@@ -1,6 +1,7 @@
 import { appointments as mockAppointments } from '../data/mockData'
 import { useAuth } from '../contexts/AuthContext'
 import { useFhqData } from '../hooks/useFhqData'
+import type { CalendarEvent } from '../lib/calendar'
 
 const NEW_EVENT_URL = 'https://calendar.google.com/calendar/u/0/r/eventedit'
 
@@ -18,6 +19,41 @@ function NewAppointmentButton() {
   )
 }
 
+function groupByDate(events: CalendarEvent[]): { key: string; label: string; events: CalendarEvent[] }[] {
+  const buckets = new Map<string, { label: string; events: CalendarEvent[] }>()
+  for (const ev of events) {
+    const bucket = buckets.get(ev.dateKey)
+    if (bucket) {
+      bucket.events.push(ev)
+    } else {
+      buckets.set(ev.dateKey, { label: ev.dateLabel, events: [ev] })
+    }
+  }
+  return Array.from(buckets.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => ({ key, ...value }))
+}
+
+function EventRow({ event }: { event: CalendarEvent }) {
+  const meta = [event.location, event.durationLabel].filter(Boolean).join(' · ')
+  return (
+    <li>
+      <a
+        href={event.htmlLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="appt-row appt-row-link"
+      >
+        <span className="appt-time">{event.startLabel}</span>
+        <div className="appt-body">
+          <p className="appt-title">{event.summary}</p>
+          {meta && <p className="appt-meta">{meta}</p>}
+        </div>
+      </a>
+    </li>
+  )
+}
+
 export default function Appointments() {
   const { isSignedIn } = useAuth()
   const { events, loading, error, refetch } = useFhqData()
@@ -26,8 +62,10 @@ export default function Appointments() {
     return (
       <section className="card">
         <div className="card-head">
-          <h2 className="card-title">Today's Appointments</h2>
-          <span className="card-meta">{mockAppointments.length} TODAY</span>
+          <h2 className="card-title">Upcoming</h2>
+          <span className="card-meta card-meta-muted">
+            {mockAppointments.length} EVENTS
+          </span>
         </div>
         <ul className="appt-list">
           {mockAppointments.map((appt) => (
@@ -53,12 +91,15 @@ export default function Appointments() {
   const showSkeleton = loading && !events
   const showError = !!error && !events
   const items = events ?? []
+  const groups = groupByDate(items)
 
   return (
     <section className="card" aria-busy={loading || undefined}>
       <div className="card-head">
-        <h2 className="card-title">Today's Appointments</h2>
-        <span className="card-meta">{items.length} TODAY</span>
+        <h2 className="card-title">Upcoming</h2>
+        <span className="card-meta card-meta-muted">
+          {items.length === 0 ? '5 DAYS' : `${items.length} EVENTS`}
+        </span>
       </div>
 
       {showError ? (
@@ -80,32 +121,21 @@ export default function Appointments() {
             </li>
           ))}
         </ul>
-      ) : items.length === 0 ? (
-        <p className="appt-empty">Nothing scheduled today</p>
+      ) : groups.length === 0 ? (
+        <p className="appt-empty">Nothing scheduled this week</p>
       ) : (
-        <ul className="appt-list">
-          {items.map((event) => {
-            const meta = [event.location, event.durationLabel]
-              .filter(Boolean)
-              .join(' · ')
-            return (
-              <li key={event.id}>
-                <a
-                  href={event.htmlLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="appt-row appt-row-link"
-                >
-                  <span className="appt-time">{event.startLabel}</span>
-                  <div className="appt-body">
-                    <p className="appt-title">{event.summary}</p>
-                    {meta && <p className="appt-meta">{meta}</p>}
-                  </div>
-                </a>
-              </li>
-            )
-          })}
-        </ul>
+        <div className="appt-days">
+          {groups.map((group) => (
+            <div key={group.key} className="appt-day-group">
+              <h3 className="appt-day-header">{group.label}</h3>
+              <ul className="appt-list">
+                {group.events.map((event) => (
+                  <EventRow key={event.id} event={event} />
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
 
       <NewAppointmentButton />

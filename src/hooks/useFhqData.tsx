@@ -10,7 +10,7 @@ import type { ReactNode } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { fetchPriorityInbox, fetchUnreadCounts } from '../lib/gmail'
 import type { InboxItem } from '../lib/gmail'
-import { fetchTodaysEvents } from '../lib/calendar'
+import { fetchUpcomingEvents } from '../lib/calendar'
 import type { CalendarEvent } from '../lib/calendar'
 
 const REFRESH_MS = 5 * 60 * 1000
@@ -53,7 +53,7 @@ export function FhqDataProvider({ children }: { children: ReactNode }) {
       const [nextCounts, nextInbox, nextEvents] = await Promise.all([
         fetchUnreadCounts(token),
         fetchPriorityInbox(token),
-        fetchTodaysEvents(token),
+        fetchUpcomingEvents(token),
       ])
       setCounts(nextCounts)
       setInbox(nextInbox)

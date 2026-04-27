@@ -8,6 +8,8 @@ export type CalendarEvent = {
   startLabel: string
   durationLabel: string
   isAllDay: boolean
+  dateKey: string
+  dateLabel: string
 }
 
 type GcalDate = { dateTime?: string; date?: string; timeZone?: string }
@@ -23,20 +25,21 @@ type GcalListResponse = { items?: GcalEvent[] }
 
 const CAL_BASE = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
 
-export async function fetchTodaysEvents(
+export async function fetchUpcomingEvents(
   accessToken: string,
+  days = 5,
 ): Promise<CalendarEvent[]> {
   const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const end = new Date(start)
-  end.setDate(end.getDate() + 1)
+  const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const timeMax = new Date(timeMin)
+  timeMax.setDate(timeMax.getDate() + days)
 
   const params = new URLSearchParams({
-    timeMin: start.toISOString(),
-    timeMax: end.toISOString(),
+    timeMin: timeMin.toISOString(),
+    timeMax: timeMax.toISOString(),
     singleEvents: 'true',
     orderBy: 'startTime',
-    maxResults: '20',
+    maxResults: '50',
   })
 
   const res = await fetch(`${CAL_BASE}?${params.toString()}`, {
@@ -46,10 +49,10 @@ export async function fetchTodaysEvents(
   if (!res.ok) throw new Error(`Calendar API ${res.status}`)
 
   const data = (await res.json()) as GcalListResponse
-  return (data.items ?? []).map(toCalendarEvent)
+  return (data.items ?? []).map(parseEvent)
 }
 
-function toCalendarEvent(e: GcalEvent): CalendarEvent {
+function parseEvent(e: GcalEvent): CalendarEvent {
   const isAllDay = !!e.start.date && !e.start.dateTime
   const start = isAllDay
     ? parseAllDayDate(e.start.date!)
@@ -68,6 +71,8 @@ function toCalendarEvent(e: GcalEvent): CalendarEvent {
     startLabel: isAllDay ? 'All day' : formatStartTime(start),
     durationLabel: isAllDay ? '' : formatDuration(start, end),
     isAllDay,
+    dateKey: formatDateKey(start),
+    dateLabel: formatDateLabel(start),
   }
 }
 
@@ -86,6 +91,29 @@ function formatDuration(start: Date, end: Date): string {
   const hours = minutes / 60
   if (Number.isInteger(hours)) return `${hours} hr`
   return `${hours.toFixed(1)} hr`
+}
+
+function formatDateKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function formatDateLabel(d: Date): string {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+
+  if (target.getTime() === today.getTime()) return 'Today'
+  if (target.getTime() === tomorrow.getTime()) return 'Tomorrow'
+  return d.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 export function buildQuickAddUrl(senderName: string, subject: string): string {

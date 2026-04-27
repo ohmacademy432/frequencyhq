@@ -54,7 +54,10 @@ export default function Header() {
     isSignedIn && counts
       ? Object.values(counts).reduce((sum, n) => sum + n, 0)
       : summary.unread
-  const apptCount = isSignedIn && events ? events.length : summary.appointments
+  const apptCount =
+    isSignedIn && events
+      ? events.filter((ev) => ev.dateLabel === 'Today').length
+      : summary.appointments
   const pendingCount = isSignedIn
     ? tasks.filter((t) => !t.completed).length
     : summary.pendingTasks
